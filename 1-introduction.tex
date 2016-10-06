@@ -1,0 +1,70 @@
+%------------------------------------------------------------
+\section{Introduction}
+\label{sec-introduction}
+NEEDS TO BE UPDATED!
+%GCMS intro
+As the term suggests, multibody systems consist of several---possibly deformable---bodies, whose relative motion is typically constrained kinematically by means of joints and connectors.
+%In multibody dynamics systems, the mechanical part of a machine consists of several moving and possibly deformable bodies. 
+Conventional approaches for the analysis of multibody dynamics are based on the floating frame of reference formulation (FFRF)~\cite{Shabana13}, in which a body-fixed frame is employed for the representation of a component's rigid body motion.
+In FFRF-based methods, the flexible deformation, which is usually assumed to be small, is introduced relative to the floating frame.
+In order to get along with a small number of flexible degrees of freedom, the FFRF is often combined with the ideas of component mode synthesis (CMS). 
+Accordingly, the flexible deformation of a component is described by means of appropriate modal shape functions that capture the essential contribution of a component's flexibility.
+Due to the flexible deformation being represented relative to the floating frame, the relation between the total displacement and generalized coordinates---regardless of how the rigid body motion is parameterized---is inherently non-linear. 
+
+As opposed to the conventional FFRF-based CMS, it has recently been shown that it is possible to represent the motion of the arbitrarily moving components of complex flexible multibody systems using a linear combination of shape functions and generalized coordinates~\cite{gerstmayr2008,pechstein2013,humerziegler2013}. 
+The crucial advantage of this approach, which is referred to as generalized component mode synthesis (GCMS), is the linear relationship between the generalized coordinates and the total displacements.
+Due to the linearity, the mass matrix is constant and the stiffness matrix is a co-rotated but otherwise constant matrix that can be computed efficiently. 
+Moreover, non-linear inertia terms inherent to conventional FFRF-based approaches do not appear in the GCMS formulation since no relative coordinates are utilized.
+These advantages, however, come at cost of a larger set of shape functions as compared to FFRF-based CMS.
+The generalized modal basis is constructed from the same mode shapes that are used in FFRF approaches.  
+
+Besides the computationally efficiency of the GCMS, the linear structure of the inertia terms enables a straightforward application of energy-momentum conserving time integration schemes. 
+This allows larger time steps for the simulation while preserving exactly fundamental properties of moving structures~\cite{humergerstmayr2013}.
+A further feature that plays an important role in the proposed approach is the simplified structure of the constraint relations of typical kinematic pairs compared to FFRF-based methods, which is again due to the immediate correspondence of generalized coordinates and absolute displacement field.
+
+%GMP intro
+%The global modal parameterization (GMP), in turn, has been developed for an efficient modeling and simulation of both rigid and flexible multibody systems~\cite{Bruls_IJNME2008, NaetsHeirman2011}. 
+%The main idea of GMP is to approximate the configuration of a multibody system by means of system level shape functions.
+%%In order to obtain a computationally efficient method, specific shape functions are used for a set of possible configurations. 
+%In order to obtain a computationally efficient method, specific shape functions are required for all possible configurations of the multibody system. 
+%As the projection space is continuously changing in general, the projection modes are computed and stored for a predefined grid of configurations in a preprocessing step. During the transient analysis, the projection modes are interpolated on that grid of configurations.
+%Besides an inevitable error, such an interpolation unfortunately requires a considerable amount of storage.
+%%Unfortunately, such interpolation can be a source of errors; moreover, a considerable amount of storage is required.
+%%Unfortunately, this leads to an error due to the interpolation and requires considerable storage space to store different spaces.
+%This variable projection space also leads to complicated inertial forces, which greatly increases the computational load. 
+%For these reasons, it is beneficial to have both a constant reduction space and a constant reduced mass-matrix, which is enabled by combining the fundamental ideas and advantages of the GCMS and GMP approach. 
+Introduction on system-level MOR for flexible multibody simulation:
+\begin{itemize}
+\item Interest in system-level MOR as the component based description for fmbs is typically redundant.
+\item One method which has been introduced in the past as a general approach to tackle this issue, is the GMP approach. But highly nonlinear inertial forces, poor scaling with the number of rigid DOFs and large storage requirements.
+\item Focus to resolve these issues by starting from the GCMS model description specifically. 
+\end{itemize}
+ADD A PARAGRAPH ON MOR TECHNIQUES WHICH COULD BE APPLIED TO THE SYSTEM LEVEL MODEL: GMP, (U)DEIM, ECSW AND THEIR DRAWBACKS FOR THIS PARTICULAR APPLICATION. 
+
+%combined method intro:
+%In the present paper, we propose a coupled approach, in which the GCMS formulation for the individual components of a multibody system serves as basis for a GMP model reduction. 
+%Coupling these two approaches leads to a description with a constant mass matrix, from which a number of the redundant degrees of freedom (DOFs) introduced by the GCMS approach and the kinematic constraints that connect the bodies can be eliminated. 
+%In the case of linear constraint equations, which comprises a large range of kinematic pairs due to the specific nature of generalized coordinates in the GCMS, a constant joint projection can be defined. 
+%This characteristic feature is exploited for obtaining a constant reduction space based on a singular value decomposition (SVD) of the undeformed configurations and linearized flexible deformations. 
+%The SVD leads to a dominant space which captures the essential motion of the full system.
+%Such description enables highly efficient simulation of complex flexible multibody systems. 
+Two important steps in the proposed system level model reduction:
+\begin{itemize}
+\item Construct reduction space. Focus on constant reduction space in order to circumvent nonlinear inertial forces and issues with model interpolation. Two different approaches, an a-priori and posterior one, are presented in this work for constructing the reduction space. 
+\item Efficient evalution of nonlinear internal forces. Circumvent the need to sample the internal force space. 
+\end{itemize}
+
+The construction of this system level reduced model occurs in multiple steps:
+\begin{itemize}
+\item First the original GCMS model is constructed from (solid) finite-element models for all the system components.
+\item In the second step orthogonal space to the constraint equations is evaluated.
+\item In the third step the system-level reduction space is constructed.
+\item In the fourth step the different components which can be precomputed for the reduced system level evaluation are constructed.
+\item In the final step the reduced system level model is evaluated. 
+\end{itemize}
+This leads to the system-level mode synthesis (SLMS) proposed in this work. 
+
+In Section~\ref{sec-gcms}, we briefly outline the key ideas and properties of the GCMS formulation. 
+Section~\ref{sec-GMP_overview} discusses how the GCMS approach is particularly attractive from a system level model reduction point of view and how this formulation can be used to obtain an ordinary differential description of an MBD model. Section~\ref{sec-reduction_space} then describes how the system level reduction space can be constructed and Section~\ref{sec-hyper_reduction} presents an efficient way for evaluating the nonlinear internal forces for a system level model. 
+In order to demonstrate the potential of the proposed approach, two numerical examples are discussed in Section~\ref{sec-numerical_example}.
+

@@ -1,0 +1,82 @@
+% -----------------------------------------------------------
+
+\section{{Reduced evaluation of system level internal forces}} \label{sec-hyper_reduction}
+% Discuss the reduced cost evaluation of the internal forces for the proposed approach.
+
+With the reduction spaces defined in the previous section, it is straightforward to evaluate the inertial forces for the reduced order model by directly projecting the GCMS mass matrix:
+\begin{equation}
+F_{iner}^{sl} = {\phisl}^T\Mgcms\phisl\ddetasl = \Msl\ddetasl,
+\end{equation}
+and as discussed before, the joint equations vanish from the equations of motion due to the selection of the system level reduction space. 
+
+% General idea:
+However, the internal potential forces for a GMCS model $\Fint$ are strongly nonlinear, and can therefor not be directly projected in order to have a computational load independent of the original model size. In previous work the reduced DOFs $\eta$ were projected back onto the original DOFs $\q$ in order to evaluate the internal forces \cite{Humer}. This allows to exploit some of the benefits of the reduced order model, as the number of DOFs for which the equations of motion need to be solved is reduced and there is greater flexibility due to the ODE structure. However, for a GCMS model with a large number of flexible DOFs, this can still lead to an expensive scheme due to the cost of evaluating (and differentiating) the nonlinear internal forces. 
+In this section we will therefor investigate how the internal forces for the system-level reduced order model can be expressed without performing the back-projection to the original GCMS coordinates.    
+
+
+The first aspect to consider is the rotation matrix $\A$ (and $\Abd$). 
+According to the literature for corotational finite elements, this rotation matrix can be determined in a number of ways. In this work we focus on the frame-by-three-nodes approach proposed in previous work on GCMS modeling \cite{Pechstein2013}, but similar schemes to the one proposed here can (easily) be devised for other approaches. In this approach, the body-attached rotation matrix for body $l$ is obtained from the global position of three nodes of this body. These nodal coordinates for body $l$ $d_A^l \in \mathbb{R}^9$ are extracted from the full system GCMS coordinate vector through a selection matrix $S_A^l \in \mathbb{R}^{9\times n}$ for body $i$:
+\begin{equation}
+d_A^l = S_A^l\qgcms,
+\end{equation}
+which enables a straightforward reduction:
+\begin{equation}
+d_A^l \approx d_{Ar}^l = S_A^l\left(\rho+\phisl\eta\right) = d_{A\rho}^l + S_{Ar}^l\eta,
+\end{equation}
+which allows an evaluation of the body level rotation independent of the original number of DOFs through the reduced selection matrix $S_{Ar}^l$ for each body $l$:
+\begin{equation}
+\A = \A\left(d_{A\rho}^l+S_{Ar}^l\eta\right).
+\end{equation} 
+Also the derivatives of $\A$ can then be evaluated directly as a function of one of the system-level reduced DOFs $\eta_i$:
+\begin{equation}
+\frac{\partial \A}{\partial \eta_i} = \sum_{j=1}^9\frac{\partial \A}{\partial d_{A,j}^l}S_{A,ji}^l.
+\label{eq:rotmat_red_der}
+\end{equation}
+
+
+We now define a selection matrix $P^{ij}\in \mathbb{R^{3 \times 3 }}$ with:
+\begin{eqnarray}
+P^{ij}_{kl} &= 0, k\neq i \text{ or } l\neq j, \\
+P^{ij}_{kl} &= 1, k= i \text{ and } l= j,
+\end{eqnarray}
+which allows to select the different elements of the rotation matrix $\A$. Similar to $\A$ and $\Abd$, these selection matrices can also be structured for the full body in $P^{ij}_{bd}$. With these matrices, the body rotation matrix can be expressed as \footnote{With notation $\sum_{a,\ldots,d=1}^n = \sum_{a=1}^n\ldots\sum_{d=1}^n$}:
+\begin{equation}
+\Abd = \sum_{i,j=1}^{3}P^{ij}_{bd}\A_{ij},
+\end{equation}
+in terms of the different elements of the rotation matrix $\A$. 
+
+With this description for the body rotation, the internal forces acting on the reduced order coordinates $\Fint^{l,\etasl}$ for body $l$ can be expressed as:
+\begin{eqnarray}
+\Fint^{l,\etasl} & = & {\phisl}^T\Fint^l(\rho + \phisl\etasl), \\
+&=& \sum_{h,i,j,k=1}^{3} {\phisl}^TP^{hi}_{bd}\Kred P^{jk}_{bd}(\rho+\phisl\etasl)\A_{ih}\A_{jk} \nonumber \\
+&& -\sum_{h,i=1}^{3} {\phisl}^TP^{hi}_{bd}\Kred^*\A_{ih} \nonumber \\
+&& + \sum_{h,i,j,k=1}^{3}\left[\left(\rho+\phisl\etasl\right)^TP^{hi}_{bd}\Kred P^{jk}_{bd}\left(\rho+\phisl\etasl\right)\frac{\partial\A_{ih}}{\partial\etasl_i}\A_{jk}\right]_{i=1:n_{sl}} \nonumber \\
+&& - \sum_{h,i=1}^{3}\left[\left(\rho+\phisl\etasl\right)^TP^{hi}_{bd}\Kred^*\frac{\partial\A_{ih}}{\partial\etasl_i}\right]_{i=1:n_{sl}},
+\end{eqnarray}
+where the rotation matrix derivatives are evaluated according to Eq.~\eqref{eq:rotmat_red_der}.
+This is a rather elaborate equation for the internal forces, but all terms dependent on the original model size can be projected onto the system-level reduced model before simulation, such that the internal forces for a body can be written as:
+\begin{eqnarray}
+\Fint^{l,\etasl} &=& \sum_{h,i,j,k=1}^{3} \left(\Ksl^{hijk}\etasl + \Ksl^{\rho,hijk}\right)\A_{ih}\A_{jk} -\sum_{h,i=1}^{3} \Ksl^{*,hi}\A_{ih} \nonumber \\
+&& + \sum_{h,i,j,k=1}^{3}\left[\left(\etasl^T\Ksl^{hijk}\etasl+2\etasl^T\Ksl^{\rho,hijk}+\Ksl^{\rho\rho,hijk}\right)\frac{\partial\A_{ih}}{\partial\etasl_i}\A_{jk}\right]_{i=1:n_{sl}} \nonumber \\
+&& - \sum_{h,i=1}^{3}\left[\left(\etasl^T\Ksl^{*,hi} + \Ksl^{*\rho,hi}\right)\frac{\partial\A_{ih}}{\partial\etasl_i}\right]_{i=1:n_{sl}},
+\end{eqnarray}
+with
+\begin{eqnarray}
+\Ksl^{hijk} &=& {\phisl}^TP^{hi}_{bd}\Kred P^{jk}_{bd}\phisl, \\
+\Ksl^{\rho,hijk} &=& {\phisl}^TP^{hi}_{bd}\Kred P^{jk}_{bd}\rho, \\
+\Ksl^{\rho\rho,hijk} &=& \rho^TP^{hi}_{bd}\Kred P^{jk}_{bd}\rho, \\
+\Ksl^{*,hi} &=& {\phisl}^TP^{hi}_{bd}\Kred^*, \\
+\Ksl^{*\rho,hi} &=& \rho^TP^{hi}_{bd}\Kred^*,
+\end{eqnarray}
+with $\Kred$ and $\Kred^*$ as given in respectively Eq.~\eqref{eq:Kred} and Eq.~\eqref{eq:Kred*}. 
+It is not necessary store all of these matrices as $\Kred$ is symmetric and therefor many of these matrices are symmetric with respect to $h,i,j,k$. These matrices need to be stored for every body in the system, but their sizes are independent off the original body size, leading to an internal force evaluation cost independent of the original model size. 
+ 
+In order to obtain the full internal force vector for the system level reduced order model, the contributions from all bodies need to be summed together:
+\begin{equation}
+\Fint^{\etasl} = \sum_{l=1}^{n_{body}}\Fint^{l,\etasl}. 
+\end{equation}
+With this formulation, the computational load becomes independent of the original number of DOFs and scales with the number of bodies and system-level modes. In practice this implies that the proposed approach scales favorably if the GCMS model consisted of a limited number of bodies with many flexible DOFs for each body and that a regular back-projection might be preferable if a large number of bodies with only a few flexible DOFs are present. 
+ 
+The main benefit of this approach over other more general reduction schemes is the fact that besides the projection, no further approximations are made on the equations of motion for the system. The nonlinear internal forces are evaluated exactly for the system level reduction basis. 
+
+

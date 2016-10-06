@@ -1,0 +1,23 @@
+% -----------------------------------------------------------
+\section{Conclusion}
+NEEDS TO BE UPDATED. 
+In the present paper, a novel approach for an efficient simulation of flexible multibody systems based on modal reduction methods has been discussed. Combining the advantageous properties of the GCMS formulation with the ideas of the GMP approach for a system level reduction is a promising step towards a more efficient analysis and real-time simulations of complex problems.
+The GCMS formulation provides the key ingredients required by a GMP approach in order to perform well. The linear configuration space of such absolute coordinate based approach significantly reduces the computational efforts compared to classical FFRF-based methods involving non-linear inertia terms. 
+Abandoning a description of flexible displacements relative to the rigid body motion, the GCMS shape functions are constant for the entire configuration manifold, i.e., the possible configurations of a body in the course of motion. 
+%Therefore, it is not necessary to perform some sort of interpolation of varying shape functions as it is usually the case in conventional GMP approaches. 
+In contrast to the time dependent projection space of classical GMP approaches, which requires an expensive pre-computation and interpolation of several quantities, the properties of the GCMS formulation allow a constant projection when performing a system level reduction.
+A second crucial feature enabling an efficient simulation is the simple linear structure of the algebraic constraint equations of many conventional kinematic pairs when employing absolute coordinates. 
+As a consequence, the null space projection that is used in GMP to eliminate constraints from the equations of motion is also constant in practical real-world applications. 
+As explained above, the approach discussed in the present paper only represents the first of several steps used in GMP for model order reduction.
+The validity and efficiency have been demonstrated by means of a first numerical example which has already shown a significant speed-up without reducing the accuracy of the results.
+In future work, further reduction steps promising an even more efficient combination of the GCMS and GMP approaches will be investigated. 
+In addition to what has been mentioned above, the applicability of fast explicit time integration schemes will be studied since a constant number of operations is a key requirement of real-time systems.
+%The present paper focuses on the first step 
+
+
+% -----------------------------------------------------------
+\section*{Acknowledgements}
+This work benefits from the Belgian Programme on Interuniversity Attraction Poles, initiated by the Belgian Federal Science Policy Office (DYSCO). The IWT Flanders within the MODRIO project is also gratefully acknowledged for their support. The authors also acknowledge the support of ITEA2 through the MODRIO project. 
+The research of Frank Naets is funded by a postdoctoral fellowship of the Fund for Scientific Research, Flanders (F.W.O).
+%
+The authors Humer and Gerstmayr have been supported by the Linz Center of Mechatronics (LCM) in the framework of the Austrian COMET-K2 programme.

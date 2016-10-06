@@ -1,0 +1,210 @@
+% -----------------------------------------------------------
+\section{{Numerical validation}}
+\label{sec-numerical_example}
+% NEEDS TO BE UPDATED!
+% Re-run this example in matlab code? -> ask FE definition files to Alex? (and then just use tetra's from Nastran)
+
+% Numerical examples:
+% - 1 rigid dof, non-redundant rigid constraints
+% - 1 rigid dof, redundant rigid constraints
+% - 4-bar, 2 closures with and without training in the two configurations
+
+In this section we perform two validation cases for the system-level model order reduction scheme based on a GCMS flexible multibody model. In both cases the reduction performance of the two presented schemes is compared. The first system is a double pendulum which demonstrates the performance in the case of multiple rigid system DOFs. This is a model structure which cannot be handled adequately by the GMP approach, previously presented for system level model reduction for FMBS \cite{Bruls2008}. The second validation case is a six-bar mechanism. This is a particularly challenging case due to the overly constrained rigid motion and offers interesting potential for model reduction due to the strongly coupled motion between the components. 
+
+This section is focused on the reduction in the number of DOFs and the resulting accuracy. Computational load is not discussed in detail as all implementations are in Matlab \cite{Matlab} which does not provide a reliable platform for absolute computational load evaluation. However, in all cases discussed here, the final computational load scaled well with the number of DOFs. Besides the lower computational load of evaluating the equations of motion, the smaller scale models also offered faster convergence during the iterative phase of the implicit time integration. 
+
+% -------------------------------------------------------------
+\subsection{Double pendulum}
+The first model considered is a flexible double pendulum with a load applied at the free end. The overall motion of the double pendulum system is shown in Fig.~\ref{fig:DoublePendulum}. 
+\begin{figure}[htp]
+\centering
+\includegraphics[bb= 1cm 1cm 14cm 4cm, clip, scale=1]{DoublePendulum.eps} 
+\caption{Motion of the (unreduced) double pendulum model.}
+\label{fig:DoublePendulum}
+\end{figure}
+
+\paragraph{Simulation setup}
+% Description of bodies.
+This system consists of only two bodies. The two bodies are modeled identically and are rectangular sections on which the same finite element discretization is performed with hexahedron elements in Nastran. The properties of each body are summarized in Tab.~\ref{tab:DoublePendulumProperties}. 
+\begin{table}[htp]
+\centering
+\caption{Parameters for double pendulum body.} \label{tab:DoublePendulumProperties}
+\vspace{1ex}
+\begin{tabular}{l r}
+\toprule
+Length 	& $0.3m$	\\[0.2ex]
+Height & $0.05m$	\\[0.2ex]
+Width & $0.03m$	\\[0.2ex]
+Youngs modulus & $2.1\cdot 10^7 N/m^2$	\\[0.2ex]
+Poison Ration & $0.3$	\\[0.2ex]
+Elements & $48$	\\[0.2ex] 
+Nodes & $105$	\\[0.2ex]
+Modes & $4$	\\[0.2ex] 
+\bottomrule
+\end{tabular}
+\end{table}
+With these parameters, each body has a total of forty-eight DOFs ($3$ rigid translation, $9$ rotation and $9\times 4$ flexible modes).
+Only spherical joints are used in the system level model. One joint connects the center node of one end of the first body to the fixed world reference, and a second joint connects the center node of the second end of the first body to the center node of the free end of the second body. This leads to a system with six rigid DOFs and ninety free DOFs for the full system. 
+A biased random force, with a component in the y- and z-direction, is applied at the free end of the second body. The course of this force is shown in Fig.~\ref{fig:DoublePendulumLoad}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{DoublePendulumLoad.eps} 
+\caption{Tip loads on double pendulum model.}
+\label{fig:DoublePendulumLoad}
+\end{figure}
+The dynamic simulation is performed using a generalized alpha integrator with an exact Newton-Raphson solver\cite{BrulsGenAlpha}. The simulation is run for $0.5sec$ with a timestep of $\Delta t = 10^{-3}sec$ and the numerical damping factor set to $\rho = 0.1$ (no model damping is added). 
+
+\paragraph{Model reduction setup}
+First we investigate the selection of the reduction space for the double pendulum model. For the POD space, the previously described simulation is run first in order to provide a training trajectory for the system. The singular value decomposition performed on this system leads to the singular values (normalized with respect to the largest singular value) shown in Fig.~\ref{fig:DoublePendulumSigmas}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{DoublePendulumPODSigmas.eps} 
+\caption{Singular values for double pendulum response.}
+\label{fig:DoublePendulumSigmas}
+\end{figure}
+It is interesting to notice that even though the system experiences a broad excitation,  the singular values still show a fast decay, indicating a considerable reduction potential. The final six singular values equal machine precision as these modes cannot be excited due to the constraints (only ninety free DOFs remain as discussed before). 
+
+Secondly, we consider the construction of the modal reduction space. Many possibilities exist to select the undeformed configurations for which the modal space is constructed. For this numerical validation we employ the initial GCMS simulation results to extract a set of reference configurations (we choose every fiftieth response vector). For each of these training responses $\q_{tr}$ we compute the closest undeformed configuration $\q_{ref}$ by solving a constrained optimization problem:
+\begin{eqnarray}
+min & \left|\q_{ref}-\q_{tr}\right|_2 \\
+s.t & F_{int}(\q_{ref}) = 0, \\
+& C(\q_{ref}) = 0.
+\end{eqnarray}
+This problem looks for the closest undeformed configuration which meets the constraints. It is interesting to highlight that we use the internal forces for the constraint instead of the internal energy, as the latter leads to very slow convergence near the solution due to the internal forces also approaching zero. 
+For each of these reference configurations the first four system-level eigenmodes are computed and these are grouped together to perform the singular value decomposition, as outlined in Sec.~\ref{sec-reduction_space}. The (normalized) singular values for these four decompositions are shown in Fig.~\ref{fig:DoublePendulumModalSigmas}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{DoublePendulumModalSigmas.eps} 
+\caption{Singular values for the four first system level eigenmodes of the double pendulum.}
+\label{fig:DoublePendulumModalSigmas}
+\end{figure}
+It is interesting to notice that these singular values decay rather slow, leading to the assumption that the reduction efficiency might be relatively low. 
+The reduction space construction here is based on setting a cut-off tolerance for the SVD and a maximum number of reduced bases. In the following paragraph we investigate how the final accuracy evolves when adjusting these two parameters. 
+
+\paragraph{Results}
+A plot of the response for the unreduced and two reduced models is shown in Fig.~\ref{fig:DoublePendulumResponse}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{DoublePendulumResponse.eps} 
+\caption{Response of double pendulum model: comparison of unreduced response (GCMS) with POD system level reduced model ($n_r=28$) and modal system level reduced model ($n_r=63$ and $\sigma_c=10^{-2}$).}
+\label{fig:DoublePendulumResponse}
+\end{figure}
+This figure clearly shows that even for this relatively small initial model, a considerable reduction in the number of DOFs is possible using either of the proposed approaches. The POD approach offers superior performance, but this is also expected as the case considered is fully reproductive.
+It is now also interesting to investigate how the model error evolves for a varying size of the reduced order system level model. 
+Fig.~\ref{fig:DoublePendulumPODError} shows the decay of the difference between the original GCMS and reduced order SL-GCMS model with the POD basis, for an increasing number of POD modes. 
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=1]{DoublePendulumPODError.eps} 
+\caption{Convergence of reduced order model with POD for double pendulum.}
+\label{fig:DoublePendulumPODError}
+\end{figure}
+This figure shows a very fast decay, indicating that a small basis is able to accurately capture the simulated behavior. This is particularly interesting as the nonlinearity in this case is considerable.
+Fig.~\ref{fig:DoublePendulumModalError} shows the course of the reduction error for different parameters (reduced model size and cut-off singular value) for the SL-GCMS model with a modal reduction basis. 
+\begin{figure}[htp]
+\centering
+\includegraphics[bb= 0cm 0cm 10cm 5cm, clip,scale=1]{DoublePendulumModError.eps} 
+\caption{Convergence of reduced order model with POD for double pendulum.}
+\label{fig:DoublePendulumModalError}
+\end{figure}
+This figure still shows convergence as the ROM size increases, but the convergence is much slower than in the POD case. Moreover, also the cut-off singular value has an important impact on the accuracy for the larger ROMs. The observed behavior at $n_r=63$ can be explained intuitively. For very high cut-off, only a single mode is selected from each set, but this mode is not capable of capturing that full modal behavior accurately. However if the cut-off is selected too low, too much emphasis is put on the first few modes, again leading to a limited accuracy. 
+For the given simulation case, the POD approach clearly provides a higher reduction efficiency than the modal approach. This is to be expected as the POD space is specifically tailored to this simulation case. However, both approaches demonstrate good accuracy for (considerably) smaller models, even in the case of this simple unreduced reference model. The POD SL-GCMS model is smaller, but less robust with respect to varying inputs and requires a full reference simulation. The modal SL-GCMS on the other hand should be relatively robust and the reduction space construction can be performed in parallel, leading to low overall simulation time, but does require a larger model for good accuracy. 
+
+% -------------------------------------------------------------
+\subsection{Five-bar mechanism}
+A five-bar mechanism is investigated because there is a stronger coupling between the different components than for the pendulum model, which is expected (and shown) to be even more beneficial for model reduction. This model also proposes the additional difficulty that the rigid body motion is overly constrained, which makes it interesting to investigate how this can be handles in the POD and modal reduction space. The simulated motion of the system is shown in Fig.~\ref{fig:FiveBar}.
+\begin{figure}[htp]
+\centering
+\includegraphics[bb= 1cm 1cm 14cm 4cm, clip, scale=1]{FiveBar.eps} 
+\caption{Motion of the (unreduced) five-bar mechanism.}
+\label{fig:FiveBar}
+\end{figure}
+
+\paragraph{Simulation setup}
+% Description of bodies.
+This system consists of four flexible bodies and the rigid ground. The three parallel bodies (body 1-3) are modeled identically and are rectangular sections on which the same finite element discretization is performed with hexahedron elements in Nastran. The fourth body (body 4) is longer and allows the connection of the three parallel bodies. The properties of these bodies are summarized in Tab.~\ref{tab:FiveBarProperties}. 
+\begin{table}[htp]
+\centering
+\caption{Parameters for double pendulum body.} \label{tab:FiveBarProperties}
+\vspace{1ex}
+\begin{tabular}{l c c}
+\toprule
+ & Body 1-3 & Body 4 \\ 
+\bottomrule
+Length 	& $0.3m$	& $1m$\\[0.2ex]
+Height & $0.05m$	& $0.05m$\\[0.2ex]
+Width & $0.03m$	& $0.03m$\\[0.2ex]
+Youngs modulus & $2.1\cdot 10^9 N/m^2$	& $2.1\cdot 10^9 N/m^2$\\[0.2ex]
+Poison Ration & $0.3$	& $0.3$\\[0.2ex]
+Elements & $1080$	& $3600$ \\[0.2ex] 
+Nodes & $1519$	& $4949$\\[0.2ex]
+Modes & $10$	& $10$ \\[0.2ex] 
+\bottomrule
+\end{tabular}
+\end{table}
+With these parameters, each body has a total of one-hundred-and-two DOFs ($3$ rigid translation, $9$ rotation and $9\times 10$ flexible modes).
+Only spherical joints are used in the system level model. In this example each time two spherical joints are used to emulate the behavior of a two-bearing setup (typically modelled using a cylindrical joint). This joint setup is used to connect bodies one to three to the ground and to body four. It is interesting to notice that this setup would lead to a highly overconstrained rigid body system. For a flexible multibody model however, this is not an issue. The resulting system should have a single rigid DOF. 
+ 
+A biased random force, with a component in the x- and y-direction, is applied at the right end of body four. The course of this force is shown in Fig.~\ref{fig:FiveBarLoad}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{FiveBarLoad.eps} 
+\caption{External force load on horizontal beam in five-bar model.}
+\label{fig:FiveBarLoad}
+\end{figure}
+The dynamic simulation is again performed using a generalized alpha integrator with an exact Newton-Raphson solver\cite{BrulsGenAlpha}. The simulation is run for $0.5sec$ with a timestep of $\Delta t = 10^{-3}sec$ and the numerical damping factor set to $\rho = 0.1$ (no model damping is added). 
+
+\paragraph{Model reduction setup}
+We again begin by investigating the behavior of the reduction space for the five-bar mechanism. For the POD space, the previously described simulation is run first in order to provide a training trajectory for the system. The singular value decomposition performed on this system leads to the singular values (normalized with respect to the largest singular value) shown in Fig.~\ref{fig:FiveBarSigmas}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{FiveBarPODSigmas.eps} 
+\caption{Singular values for the five-bar model response.}
+\label{fig:FiveBarSigmas}
+\end{figure}
+The singular values again show a rapid decay as was the case with the double pendulum.  
+
+Secondly, we consider the construction of the modal reduction space. We use the reference simulation again to set up fifty reference configurations, as outlined for the double pendulum, and use Algo.~\ref{algo:ModalBasisSelection} again to construct the actual system-level modal basis. 
+In this case it is also particularly interesting to consider the selection of the rigid body modes, as these should be overconstrained through the joint selection. Fig.~\ref{fig:FiveBarRigidSigmas} shows the singular value decomposition for the joint equations in the translational and rotational DOFs of the GCMS model. 
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{FiveBarRigidSigmas.eps} 
+\caption{Singular values for joint jacobian in rigid motion DOFs for five-bar model.}
+\label{fig:FiveBarRigidSigmas}
+\end{figure}
+This figure clearly shows a strong decay after the first twenty-three singular values which is in correspondence with one exactly rigid mode. 
+For each of these reference configurations the first ten system-level eigenmodes are computed and these are grouped together to perform the singular value decomposition, as outlined in Sec.~\ref{sec-reduction_space}. The (normalized) singular values for the first four eigenmodes are shown in Fig.~\ref{fig:FiveBarModalSigmas}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{FiveBarModalSigmas.eps} 
+\caption{Singular values for the four first system level eigenmodes of the five-bar model.}
+\label{fig:FiveBarModalSigmas}
+\end{figure}
+These singular values again exhibit a relatively slow decay. 
+
+
+\paragraph{Results}
+A plot of the response for the unreduced and two reduced models for the five-bar model is shown in Fig.~\ref{fig:FiveBarResponse}.
+\begin{figure}[htp]
+\centering
+\includegraphics[scale=1]{FiveBarResponse.eps} 
+\caption{Response of five bar model: comparison of unreduced response (GCMS) with POD system level reduced model ($n_r=28$) and modal system level reduced model ($n_r=63$ and $\sigma_c=10^{-2}$).}
+\label{fig:FiveBarResponse}
+\end{figure}
+This figure clearly shows that even for this relatively small initial model, a considerable reduction in the number of DOFs is possible using either of the proposed approaches. The POD approach offers superior performance, but this is also expected as the case considered is fully reproductive.
+It is now also interesting to investigate how the model error evolves for a varying size of the reduced order system level model. 
+Fig.~\ref{fig:FiveBarPODError} shows the decay of the difference between the original GCMS and reduced order SL-GCMS model with the POD basis, for an increasing number of POD modes. 
+\begin{figure}[h!]
+\centering
+\includegraphics[scale=1]{FiveBarPODError.eps} 
+\caption{Convergence of reduced order model with POD for the five-bar model.}
+\label{fig:FiveBarPODError}
+\end{figure}
+This figure shows a very fast decay, indicating that a small basis is able to accurately capture the simulated behavior. This is particularly interesting as the nonlinearity in this case is considerable.
+Fig.~\ref{fig:FiveBarModalError} shows the course of the reduction error for different parameters (reduced model size and cut-off singular value) for the SL-GCMS model with a modal reduction basis. 
+\begin{figure}[htp]
+\centering
+\includegraphics[bb= 0cm 0cm 10cm 5cm, clip,scale=1]{FiveBarModError.eps} 
+\caption{Convergence of reduced order model with POD for the five-bar model.}
+\label{fig:FiveBarModalError}
+\end{figure}
+Blablabla

@@ -1,0 +1,126 @@
+%------------------------------------------------------------
+% Section on GCMS: Alex + Johannes
+\section{{Generalized component mode synthesis}} \label{sec-gcms}
+%++++++++++++++++++++++++++++++++++++++++
+%some text here still copy/paste from ASME paper!!!
+%++++++++++++++++++++++++++++++++++++++++
+
+% I can probably keep this section as-is...
+
+%General overview of GCMS (high level). 
+%Current bottlenecks...
+%\subsection{Modal projection}
+%Explain 12+9Nm modes.
+%\subsection{Equations of motion}
+%Show reduced equations of motion. 
+
+The generalized component mode synthesis (GCMS) is a reduction method for flexible multibody systems by means of a formulation based on inertial or absolute coordinates \cite{gerstmayr2006}. 
+Such a formulation, which is also denoted as absolute coordinate formulation (ACF), can be regarded as a method dual to the FFRF in the sense that the complete set of coordinates is defined in the global frame rather than employing coordinates relative to a co-rotational frame.
+%In what follows, the formulation is shortly revisited.
+
+\subsection{Absolute coordinate formulation and modal reduction}
+
+Following Pechstein et al.~\cite{pechstein2013}, we introduce a modal reduction of some coordinates~$\q$, e.g., nodal displacements of solid finite element models,
+\be
+  \q \approx \phigcms \qgcms. 
+\ee
+To enable a computationally efficient analysis, the reduced set of coordinates $\qgcms$ needs to be of much smaller dimensionality as compared to the original coordinates~$\q$ but still describe the body's dynamic behavior sufficiently accurate.
+%The reduction matrix $\phigcms$ is obtained from appropriate mode shapes, e.g., body-local eigenmodes or static modes, by a particular transformation that accounts for the body's rigid body motion. 
+%For further details on the structure of~$\phigcms$, we again refer to Pechstein et al.~\cite{pechstein2013}.
+We emphasize the crucial idea of the reduction being constructed such that the total displacement $\u$ of any point $\x$ of a body is linearly related to the reduced coordinates $\qgcms$ via shape functions $\Ngcms$:
+\begin{equation} \label{eq:lin}
+\u(\x) = \Ngcms (\x) \qgcms .
+\end{equation}
+In the GCMS formulation, one single set of coordinates $\qgcms$ describes the entire deformation of a body, i.e., rigid body translation and rotation as well as flexible deformation. 
+Such an approach differs significantly from the classical FFRF-based CMS method, which uses a different set of coordinates for the rigid body motion and the flexible part of displacements.
+
+Applying modal reduction to the ACF, the reduction matrix $\phigcms$ is obtained from appropriate mode shapes, e.g., body-local eigenmodes or static modes, by a transformation that accounts for the rotation of a body. 
+Each standard mode shape is converted into nine corresponding generalized mode shapes.
+%A modal reduction method can be applied to the absolute coordinate formulation by transforming each standard mode shape into nine corresponding generalized mode shapes. 
+These nine shape functions---resulting from the nine components of the rotation tensor---relate nine associated generalized coordinates to the small flexible displacements of an arbitrarily rotated body.
+The underlying rigid body motion, represented by a rotation tensor~$\A$ and a rigid body translation $\ut$ is used for simplifying the computation of the elastic forces of the body.
+The rotation tensor $\A$ is obtained by orthogonalization of position vectors of three referential nodes in the underlying finite element mesh. The reduction matrix can then be written as:
+\begin{equation}
+\phigcms = \begin{bmatrix} \phigcms_t & \phigcms_r & \phigcms_f\end{bmatrix},
+\label{eq:phigcms}
+\end{equation}
+where $\phigcms_t$ are three translation modes for a body, $\phigcms_r$ are nine rotational modes and $\phigcms_f$ are the flexible deformation modes. 
+For more details on the construction of reduction matrix $\phigcms$, which links the finite element shape functions $\mathbf N^{\rm FE}(\x)$ to those of the GCMS method, $\Ngcms(\x) = \mathbf N^{\rm FE}(\x) \phigcms$, we again refer to Pechstein et al.~\cite{pechstein2013}.
+
+Remarkably, the coordinates that describe the rigid body rotation of each body also contain stretch and shear deformation if no further constraints are imposed.
+A coordinate vector $\qrigid$ needs to be computed, which represents both the translational part and the rotation $\ur = \A \x$ contained in the total displacement, i.e.,
+\begin{equation}
+\ut(\x) + \ur(\x) = \Ngcms(\x) \qrigid .
+\end{equation}
+Consequently, the coordinate vector corresponding to the flexible displacements $\uf$ is immediately obtained as the difference $\qflex = \qgcms - \qrigid$ such that
+\begin{equation}
+\uf(\x) = \Ngcms (\x) \qflex .
+\end{equation}
+Having the relation of displacements and coordinates at hand enables a continuum mechanics based derivation of the equations of motion, see \cite{gerstmayr2006, pechstein2013}.
+
+%
+%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+\subsection{Modally reduced equations of motion}
+
+The modally reduced equations of motion are derived by starting from a Langrangian description of the system (semi-disretized in space):
+\begin{equation}
+\mathcal{L} = \Einer - \Eint + \lambda^T\C - \Wext,
+\end{equation}
+where $\Einer$ represents the kinetic energy, $\Eint$ the internal potential strain energy, $\C$ is a vector with the constraint equations and $\lambda$ are the corresponding Lagrange multipliers and $\Wext$ is the work performed by external forces. The equations of motion are then obtained by applying Hamilton's principle for the GCMS DOFs and Lagrange multipliers:
+\begin{eqnarray}
+\frac{d}{dt}\left(\frac{\partial\mathcal{L}}{\partial \dqgcms}\right) - \frac{\partial\mathcal{L}}{\partial \qgcms} &= 0, \\
+\C & = 0. 
+\end{eqnarray}
+This can be rewritten as (assuming only holonomic constraints):
+\begin{eqnarray}
+\Finer + \Fint + \left(\frac{\partial \C}{\partial \qgcms}\right)^T\lambda &= \Fext, \\
+\C & = 0. 
+\end{eqnarray}
+In the following paragraph we briefly summarize how the different contributions in this equation are computed for a GCMS model description.
+
+The inertial forces are easy to obtain (in contrast to a FFR model approach) due to the global nature of the DOFs, as discussed in previous works \cite{pechstein2013} the inertial forces $\Finer$ are obtained as:
+\begin{equation}
+\Finer = {\phigcms}^T\Mfe\phigcms\ddqgcms = \Mgcms\ddqgcms.
+\end{equation}
+External forces defined in the global reference frame are equally straightforward to project:
+\begin{equation}
+\Fext = {\phigcms}^T\Fext^{FE}. 
+\end{equation}
+
+However, in the case of the GCMS model description, the internal forces $\Fint$ are relatively involved. For this approach the internal potential strain energy $\Eint$ is obtained as:
+\begin{equation}
+  \Eint = \frac{1}{2} \left(\At\phigcms\qgcms -u_0\right)^T\Kfe\left(\At\phigcms\qgcms -u_0\right) ,
+	\label{eq:w_int2}
+\end{equation}
+where the stiffness matrix $\Kfe$ is the original finite element stiffness matrix, $u_0$ are the undeformed coordinates expressed in the body axis system and $\At$ denotes a block-diagonal matrix of the size $n \times n$with the three-by-three rotation matrix $\A$ on its diagonal. This rotation matrix can be determined in a number of ways, analogously to the techniques developed for corotational finite elements \cite{Felippa}.  Due to the construction of the of the GCMS reduction space, it is possible to write \cite{gerstmayr2006}:
+\begin{equation}
+ \At\phigcms\qgcms = \phigcms\Abd\qgcms,
+\end{equation}
+with $\Abd$ a block-diagonal matrix of the reduced model size $n_{GCMS} \times n_{GCMS}$ with three-by-three rotation matrices $\A$ on its diagonal. The internal energy can then be written as:
+\begin{eqnarray}
+  \Eint &= \frac{1}{2} \left(\phigcms\Abd\qgcms -u_0\right)^T\Kfe\left(\phigcms\Abd\qgcms -u_0\right) , \\
+	&= \frac{1}{2} \left(\phigcms\Abd\qgcms\right)^T\Kfe\left(\phigcms\Abd\qgcms\right) \nonumber \\
+	& \qquad - \left(\phigcms\Abd\qgcms\right)^T\Kfe u_0+\frac{1}{2}u_0^T\Kfe u_0 ,\\
+	&= \frac{1}{2} \left(\Abd\qgcms\right)^T\Kred\left(\Abd\qgcms\right) - \left(\Abd\qgcms\right)^T\Kred^*+\Eint^0,
+\end{eqnarray}
+with 
+\begin{eqnarray}
+\Kred &=& \left(\phigcms\right)^T\Kfe\phigcms, \label{eq:Kred}\\
+\Kred^* &=& \left(\phigcms\right)^T\Kfe u_0. \label{eq:Kred*}
+\end{eqnarray}
+From this internal energy the internal forces acting on the GCMS DOFs can be computed as:
+\begin{eqnarray}
+\Fint & = & \frac{\partial \Eint}{\partial \qgcms}, \\
+&=& \Abd^T\left(\Kred\Abd\qgcms-\Kred^*\right) \nonumber \\
+&& + \left[\left(\frac{\partial\Abd}{\partial\qgcms_i}\qgcms\right)^T\left(\Kred\Abd\qgcms-\Kred^*\right)\right]_{i=1:n_{GCMS}}
+\end{eqnarray}
+with the notation:
+\begin{equation}
+\left[\frac{\partial f}{\partial q_i}K\right]_{i=1:n} = \begin{bmatrix} \frac{\partial f}{\partial q_1}K \\ \ldots \\ \frac{\partial f}{\partial q_n}K\end{bmatrix}. 
+\end{equation}
+Upon a closer inspection, one recognizes that the evaluation of these equations requires little computational expense, see \cite{pechstein2013} for further details concerning the implementation.
+Although the number of degrees of freedom considerably exceeds that of the corresponding FFRF-based CMS method, the efficiency of the methods have proven to be comparable (or better) in industrial applications~\cite{pechstein2013}.
+While the FFRF-based CMS method features a smaller number of generalized coordinates using the same number of flexible mode shapes, a non-constant mass matrix and gyroscopic inertial need to be evaluated in each computation step, which usually negates the advantage obtained by the smaller system size.
+
+The treatment of the joint equations is treated in more detail in the following section. 
+

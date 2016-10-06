@@ -1,0 +1,93 @@
+% -----------------------------------------------------------
+% Section on GMP: Frank
+\section{{System level model description}}
+\label{sec-GMP_overview}
+
+% Focus on benefits of GCMS for system level MOR, no discussion of GMP anymore...
+This section discusses how the equations of motion for a GCMS model can be described on a system level instead of a component level. 
+Classical model reduction techniques for the simulation of flexible multibody systems are realized on a component level, i.e., the individual components are reduced separately before the system is eventually assembled.
+In contrast to such approaches, which include both the conventional FFRF-based CMS and the GCMS, this work aims to directly cover the full system behavior in a reduced setting. This approach has as main benefit that redundancies which are typically present for regular FMBS can be reduced or eliminated. This can be obtained by employing system level modes instead of component level modes.
+This concept was for introduced in the Global Modal Parameterization (GMP)~\cite{Bruls_IJNME2008, NaetsHeirman2011, Naets_MUBO2011}for FMBS. However this approach faces multiple difficulties (as discussed in Section~\ref{sec-introduction}) which can be circumvented by the GCMS based system reduction proposed in this work. 
+
+\subsection{System-level equations of motion} 
+In order to obtain an additional reduction of the number of DOFs, the proposed approach relies on two important properties of these system modes:
+\begin{enumerate}
+\item A smaller number of DOFs is required for the same range of dynamic phenomena. 
+\item The modes are defined to meet the constraints such that these can be eliminated from the equations of motion. 
+\end{enumerate}
+The first requirement is obviously the main idea of model reduction. The second requirement implies that the constraints can be eliminated from the equations of motion, turning the system of differential-algebraic equations into a set of ordinary differential equations.
+
+The generalized coordinates $\q$ describing the GCMS system's configuration are introduced as a the sum of a rigid body configuration and a linear motion field,
+\begin{equation}
+\q = \rhosl + \phisl \etasl.
+\end{equation}
+In the above equation, $\rhosl \in \realn$ denotes an undeformed reference configuration of the system which complies with all the joints imposed on the system, $\phisl \in \mathbb{R}^{n\times n_{\eta}}$ is a constant system level motion space (including both rigid and flexible deformation modes) and $\etasl\in \mathbb{R}^{n_{\eta}}$ contains the corresponding participation factors. In contrast to the previously presented GMP approach, both $\rhosl$ and $\phisl$ remain constant over the full motion of the system. 
+
+From this linear motion space, the system level reduced equations of motion can be summarized as:
+\begin{eqnarray} \label{eq_eom-gmp1}
+\Msl \ddetasl + {\phisl}^T\Fint(\rhosl + \phisl \etasl) - {\phisl}^T\frac{\partial C}{\partial \q}^T\lambda= {\phisl}^T\Fext, \\
+C(\rhosl + \phisl \etasl) = 0
+\end{eqnarray}
+As mentioned above, the algebraic constraints representing the kinematic pairs of the original system will be eliminated from the equations of motion by an appropriate choice of motion shapes $\phisl$ such that only a minimal set of DOFs is employed and the above equations can be further reduced to:
+\begin{equation} \label{eq_eom-gmp}
+\Msl \ddetasl + {\phisl}^T\Fint(\rhosl + \phisl \etasl) = {\phisl}^T\Fext.
+\end{equation}
+This choice further reduces the number of variables for which the equations of motion need to be solved and turns them into ordinary differential equations instead of differential-algebraic equations, which are considerably easier to integrate over time and allow more flexibility with respect to solver choice. 
+
+\subsection{Constraint elimination}
+\label{sec:constraint_elimination}
+In order to obtain Eq~\eqref{eq_eom-gmp}, the motion projection space $\phisl$ should lie in the kernel (or null) space $\kernel$ of the constraints $\C(\q)$,
+\begin{equation}
+\kernel = ker(\C) = \left\{\q \in \realn , \C(\q) = \mathbf{0} \right\}.
+\end{equation}
+The GCMS description inherently leads to linear equations for several fundamental joints, in contrast to a FFR description in which the joint equations are always nonlinear. This enables the elimination of the constraints by a constant projection and allows for the system level ODE description. 
+In the general case of nonlinear constraints, $\kernel$ depends on the configuration of the system. Therefore, it is impossible to define a constant mode set which always meets the constraint equations in the general case. 
+As an example, consider the FFRF-based CMS method, where nonlinear constraint equations follow due to the co-rotated flexible coordinates. 
+In the GCMS framework, on the contrary, the total displacement is a linear function of the DOFs. 
+A fundamental joint like a spherical joint between different points can therefore be expressed as linear relations of the form
+\begin{equation}
+\left(\phigcms\qgcms\right)_{ij} - \left(\phigcms\qgcms\right)_{kl} - b = 0,
+\end{equation}
+where DOF $j$ of body $i$ has to be equal to DOF $l$ of body $k$ and an offset $b$ can be present, e.g., in order to realize a connection to a fixed frame. 
+This is very straightforward for spherical joints, and it is important to notice that other joint types can be represented by combining multiple of these spherical joints. Revolute joints, for example, can be defined analogously by two or more spherical joints on the rotational axis. 
+This shows that the restriction to linear constraint relations does no impose a strong restriction on general applicability of the proposed combined approach.
+
+As intended, the full constraint equations are linear functions of the generalized coordinates in this case,
+\begin{equation}
+\C(\qgcms) = \C_{\rm lin} \qgcms - \mathbf b ,
+\end{equation}
+where $\C_{\rm lin}$ is a constant matrix. Employing a GMP-like projection,
+\begin{equation}
+\qgcms = \qgcms_0 + \kernel\qgmp,
+\label{eq:qgcmsifqgmp}
+\end{equation}
+with a reference position $\qgcms_0$ such that,
+\begin{equation}
+\C_{\rm lin} \qgcms_0-\mathbf{b}=\mathbf{0}
+\end{equation}
+a constant kernel $\kernel$ can now be defined as
+\begin{equation}
+\kernel = \left\{\qgcms \in \realn , \C_{\rm lin} \qgcms = \mathbf{0} \right\} = \mathrm{const}.
+\end{equation}
+The construction of the constraint elimination space requires the computation of the null space of the constraint equations. 
+Over the years, many different numerical algorithms have been developed which can be exploited for computing this kernel efficiently. In the present work, a singular value decomposition approach is utilized, which is readily available in many numerical libraries as, e.g.,~LAPACK~\cite{lapack}. The singular value decomposition of the constraint jacobian is given by:
+\begin{equation}
+\C_{\rm lin} = U\Xi V,
+\end{equation}
+where $\Xi \in \mathbb{R}^{n_c\times n}$ is a rectangular matrix containing the singular values for the constraint jacobian. Assuming $\C_{\rm lin}$ of full rank (which is typically true for FMBS), the null space can be constructed by selecting the trailing $n-n_c$ columns of $V$:
+\begin{equation}
+\kernel = \begin{bmatrix} V_{n_c+1} & ... & V_{n}\end{bmatrix}.
+\end{equation}
+Even though this full singular value decomposition is a relatively expensive operation, it only needs to be performed once and the number of DOFs in FMBS models is typically sufficiently limited (due to the initial GCMS reduction) that this poses little computational burden overall. However, due to the initial GCMS reduction, there is little sparsity which can be exploited in order to speed up these computations. As is discussed in Section~\ref{sec-reduction_space}, using different reduction spaces can also circumvent the explicit computation of this null-space.     
+
+This constraint elimination leads to the first level of model reduction which can be achieved for a GCMS model:
+\begin{eqnarray}
+\rhosl &=& \qgcms_0, \\
+\phisl &=& \kernel
+\end{eqnarray}
+The stored quantities for this approach comprise the undeformed configurations~$\rhosl$, the flexible modes~$\phisl$, the reduced mass matrix~$\Mgmp$.
+The inertial terms can be evaluated directly on tin the reduced space, but at this point the evaluation of the nonlinear internal forces still requires a back-transformation to the original GMCS space. 
+
+However, this first approach only allows limited computational gains and the following two sections will discuss how this advantage can be further extended by adding additional layers of model reduction. 
+
+

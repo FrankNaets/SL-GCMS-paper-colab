@@ -1,0 +1,129 @@
+% -----------------------------------------------------------
+
+\section{{System-level reduction space}} 
+\label{sec-reduction_space}
+
+
+At this point only the constraints are eliminated from the set of DOFs, which can still leave a considerable number of DOFs. Moreover, in order to obtain this constraint elimination, the null space for the constraint jacobian has to be computed explicitly, which can be a relatively expensive operation. 
+
+In this section we discuss the addition of an additional model order reduction layer in which only the most important system level dynamics are maintained for the motion space. It is important to highlight that, in contrast to what has been proposed for GMP before \cite{Bruls_IJNME2008, NaetsHeirman2011}, a constant reduction space is proposed in this work in order to prevent the addition of involved inertial forces. This is again possible because of the constant constraint jacobian obtained for the GCMS model. 
+  
+This work will explore two different approaches to the reduction space generation, an a-priori system level modal reduction space and a posterior training based POD reduction. The generation of these reduction space can also be exploited to circumvent the explicit generation of the constraint null-space, as will be discussed in the following sub-sections. 
+
+\subsection{System-level modal reduction space}
+\label{sec:sl_modal}
+% A-priori model reduction: compute a number of reference configurations, compute the eigenmodes. Keep the rigid body modes explicitly.
+A first reduction strategy which is investigated for the system level reduction of a GCMS model is an a-priori strategy where the dominant system modes are retained. In many applications it is desirable to have reduction space which can be obtained without performing any training, in contrast to many methods proposed for nonlinear model reduction in literature \cite{DEIM,ECSW}, as the training is often considered prohibitively expensive. However, due to the very large rotations present in FMBS, simple extension strategies of linear reduction spaces, like the addition of modal derivatives \cite{Idelsohn1985,RutzmoserTiso?} do not offer a valid alternative either. 
+
+In this work we therefore propose an a-priori strategy similar to the reduction space generation employed for GMP \cite{Bruls_IJNME2008}. In this approach the dynamics of the system are evaluated for several reference configurations and only the lowest frequency modes are retained. Rather than interpolating between these spaces as is the case for GMP, these modes are grouped together in order to obtain a constant reduction space. 
+
+This reduction space consists of two main contributions: the system level rigid body modes $\phisl_r$ and the flexible deformation modes $\phisl_f$: 
+\begin{itemize}
+\item In order to prevent locking of the rigid body motion, the rigid body motion and flexible motion are treated separately. The rigid body motion is treated in such a way that any rigid configuration of the system can be represented exactly. 
+In order to compute the system level rigid body modes, the constraint jacobian is partitioned into the contributions belonging to the translational, rotational and flexible GMCS DOFs (in correspondence with Eq.~\eqref{eq:phigcms}):
+\begin{equation}
+\C_{\rm lin} = \begin{bmatrix} \C_{\rm lin,t} & \C_{\rm lin,r} & \C_{\rm lin,f}\end{bmatrix}.
+\end{equation}
+Using this decomposition, the rigid body modes can be obtained by considering the null space of the constraint equations pertaining to the translational and rotational DOFs: 
+\begin{eqnarray}
+\phisl_{rr} &= ker\left(\begin{bmatrix} \C_{\rm lin,t} & \C_{\rm lin,r}\end{bmatrix}\right) \\
+& = \left\{\q \in \realn , \begin{bmatrix} \C_{\rm lin,t} & \C_{\rm lin,r}\end{bmatrix}\q = \mathbf{0} \right\}.
+\end{eqnarray}
+Computing this null-space according to the SVD procedure outlined in Section~\label{sec:constraint_elimination} is typically a relatively low-cost operation in this case as both the number of constraints and rigid body DOFs are limited (rarely exceeding thousand DOFs) which is easily tractable on modern computers. If the system is rigidly overconstrained, it might be necessary to adjust the tolerance for the singular value cut-off. Such a case is shown in Sec.~\ref{sec-numerical_example}.
+The full system rigid body modes are then obtained as:
+\begin{equation}
+\phisl_r = \begin{bmatrix} \phisl_{rr} \\ 0_{n_f\times n_r}\end{bmatrix}.
+\end{equation}
+Similar as for the unreduced GCMS model it is interesting to notice that these are not purely rigid motion modes, as the contribution from the rotational modes also introduces some shear deformation. 
+ 
+\item The system level flexible deformation modes are treated in a more approximate manner. For the construction of the system level flexible reduction basis a number $n_{ref}$ of undeformed reference configurations $\rho(\eta^{sl}_{r,i})$ (with $i=1,\ldots,n_{ref}$) are visited with:
+\begin{equation}
+\rho(\eta^{sl}_{r,i}) = \left\{\q=\phisl_r \eta^{sl}_{r,i} , \Eint\left(\q\right) = \mathbf{0} \right\}.
+\end{equation}
+For each of these configurations $i$, the free-free eigenmodes $V^{sl}_i$ are computed:
+\begin{equation}
+\left(-\Msl\omega_i^2 + \kernel \frac{\partial \Fint}{\partial \q}\Bigr|_{\rho(\eta^{sl}_{r,i})}\kernel\right)V^{sl}_i = 0
+\label{eq:eigenmodes_cons_elim}
+\end{equation}
+In order to compute the modes in this fashion, the constraint kernel $\kernel$ has to be computed explicitly. This can be circumvented by solving the constrained eigenvalue problem instead:
+\begin{equation}
+\left(-\begin{bmatrix}\Msl & 0 \\ 0 & 0\end{bmatrix}\omega_i^2 
++ \begin{bmatrix}\frac{\partial \Fint}{\partial \q}\Bigr|_{\rho(\eta^{sl}_{r,i})} & C^T \\ C & 0 \end{bmatrix}
+\right)\begin{bmatrix} V^{sl}_i \\ V^{sl,\lambda}_i \end{bmatrix} = 0
+\label{eq:eigenmodes_cons}
+\end{equation}
+Depending on the specific model it can be more convenient/efficient to use the formulation from Eq.~\eqref{eq:eigenmodes_cons_elim} or Eq.~\eqref{eq:eigenmodes_cons}. 
+From this modal space for each reference configuration $i$, the first $n_m$ non-rigid modes are retained for each configuration $V^{sl}_{i,1:n_m}$. 
+For each mode number these are assembled in a large matrix and an SVD is performed to extract the dominant components for each mode number:
+\begin{equation}
+\phisl_f = \begin{bmatrix} svd\left(\left[V^{sl}_{1,1},\ldots,V^{sl}_{n_{ref},1}\right]\right), & \ldots, & svd\left(\left[V^{sl}_{n_{ref},n_m},\ldots,V^{sl}_{n_{ref},n_m}\right]\right) \end{bmatrix}.
+\end{equation}
+Depending on the aim of the model reduction, these singular value decompositions can be truncated based on the number of modes or based on the singular values, which leads to a model of a-priori unknown size. The approach we propose in this work is to select the basis both on a maximum number of modes and a cut-off on the singular values. This approach is outlined in Algo.~\ref{algo:ModalBasisSelection}.
+% Start algorithmic description:
+\begin{algorithm}
+\caption{System-level flexible modal basis construction and selection.}
+\label{algo:ModalBasisSelection}
+\begin{algorithmic}[1]
+%\Procedure{CH\textendash Election}{}
+% \IN $n_r$, $\sigma_c$, $\rho(\eta^{sl}_{r,i})$
+\STATE Construct the full modal space:
+\STATE $V^t_{1:n_r} = [\quad]$
+\FOR{$i = 1:n_{ref}$}
+\STATE $V^{sl}_{i} = eig\left(\kernel \frac{\partial \Fint}{\partial \q}\Bigr|_{\rho(\eta^{sl}_{r,i})}\kernel, \Msl\right)$
+\FOR{$j = 1:n_r$}
+\STATE $V^t_{j} = \left[V^t_{j}, V^{sl}_{i,j}\right]$
+\ENDFOR
+\ENDFOR
+\STATE Select from full modal space:
+\STATE $\phisl_f = [\quad]$, $cnt = 0$, $j=1$
+\WHILE{$cnt < n_r$}
+\STATE $[U,\Sigma,V] = svd(V^t_j)$
+\STATE $k = 1$
+\WHILE {$\Sigma(k)/\Sigma(1)\geq\sigma_c$ AND $cnt<n_r$ AND $k\leq n_{ref}$}
+\STATE $\phisl_f = [\phisl_f, U_k]$
+\STATE $cnt = cnt+1$, $k = k+1$
+\ENDWHILE
+\STATE $j=j+1$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+As is known for regular modal reduction bases, they offer little rigorous error estimation and the same is true for the approach proposed here. Both the size of the reduced model $n_r$ and the cut-off singular value $\sigma_c$ will have an impact on the accuracy of the final ROM. However it is difficult to predict a reliable choice for either in advance. The evolution of the error for two cases are considered in Sec.~\ref{sec-numerical_example} and could serve a rough guidelines for a practical selection. 
+Future research will be conducted on how schemes based on input/attachment modes, Krylov bases and balanced truncation \cite{Witteveen} can be exploited in this context. 
+\end{itemize}
+The rigid and flexible mode-set are then concatenated and a final SVD is performed in order to prevent linear dependencies between the different mode-sets\footnote{As no tracking of e.g. mode-switching is performed, it could happen that a single modal contribution manifests itself in multiple sets which could lead to linear dependencies.}:
+\begin{eqnarray}
+U\Xi V = svd(\begin{bmatrix} \phisl_r & \phisl_f\end{bmatrix}), \\
+\phisl = \left\{U_i, \Xi_{ii} > 0\right\}. 
+\end{eqnarray}
+In order to further improve online computational efficiency, the SVD can be mass weighted in order to obtain a mass-orthogonal reduction space. 
+Depending on the application it can be relatively straightforward to find a number of reference configuration (in the case of a limited number of system-level rigid body modes) or this can become rather involved. However, we do not investigate the (minimal) selection of the reference configurations further in this work. 
+
+
+\subsection{Proper orthogonal reduction space}
+
+The second approach we consider follows a classical nonlinear model order reduction approach where a (range of) training simulation(s) is performed from which the dominant motion vectors are extracted. More particularly teh proper orthogonal decomposition (POD) is employed in this work \cite{POD}.
+
+Prior to the model reduction a number $m_t$ of training runs is performed. The response space matrix for each run $i$ is stored in $\mathcal{Q}_i$, and the responses of all training runs are grouped together in $\mathcal{Q}_t$:
+\begin{equation}
+\mathcal{Q}_t = \begin{bmatrix} \mathcal{Q}_1, & \ldots ,& \mathcal{Q}_{m_t} \end{bmatrix}.
+\end{equation}
+Next an undeformed reference configuration $\rhosl$ is chosen for the model reduction. This can be extracted from the training dated or created separately. This vector is then subtracted from $\mathcal{Q}_t$ in order to provide $\mathcal{Q}_t^*$, which contains the training displacements with respect to $\rhosl$.
+In order to extract the dominant contributions in $\mathcal{Q}_t^*$, a singular value decomposition is performed:
+\begin{equation}
+U\Xi V = svd(\mathcal{Q}_t^*).
+\end{equation}
+The system level reduction space $\phisl$ is then obtained by retaining the $m$ dominant contributions from this SVD:
+\begin{equation}
+\phisl = \left\{U_i, \Xi_{ii} > 0\right\}. 
+\end{equation}
+This approach has several drawbacks which might limit its practical applicability:
+\begin{itemize}
+\item The cost of evaluating the training simulations can be prohibitively large, especially if the actual range of the MOR has to be sufficiently large.
+\item It cannot be guaranteed that e.g. an exact rigid motion of the system is possible as there is no explicit inclusion of the rigid body modes. 
+This issue could potentially be solved by adding the rigid body modes from Section~\ref{sec:sl_modal} explicitly and orthogonalizing $\mathcal{Q}_t^*$ with respect to these modes prior to performing the SVD. This approach would allow for a general rigid body motion, with a trained flexible deformation. For the sake of brevity, this approach is not further examined in this work. 
+\end{itemize}
+An important advantage of this approach lies in the fact that it is not required to explicitly compute the kernel of the constraint jacobian. When the training simulations are performed with the regular DAE description of the model, the resulting response has to comply with the constraints as well. As the constraints are linear, any linear combination of this response space (like the obtained through the SVD) will also comply with the constraints.
+The training based reduction should also be fully robust with respect to an over-constrained rigid body motion, which can prove convenient in many applications (as shown in Section~\ref{sec-numerical_example}). 
+
+
+
